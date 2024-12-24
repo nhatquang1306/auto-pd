@@ -42,6 +42,7 @@ public class Account {
             while (!terminateFlag && isInBattle()) {
                 while (!terminateFlag && !getPixelColor(782, 380).equals(moveBar)) {
                     if (!isInBattle() || hasDialogueBox() || isRelogged()) {
+                        catchPet = false;
                         return;
                     }
                     Thread.sleep(200);

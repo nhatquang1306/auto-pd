@@ -8,8 +8,8 @@ import java.util.Map;
 
 public class LocationReader extends Reader {
     private static final int[][] locationPoints = new int[][] {
-            {58, 7}, {27, 3}, {84, 9}, {1, 6}, {47, 3}, {21, 2}, {20, 8}, {76, 10},
-            {80, 5}, {9, 4}, {49, 2}, {29, 7}, {54, 7}, {91, 3}, {9, 0}, {38, 4}
+            {58, 7}, {27, 3}, {84, 9}, {1, 6}, {47, 3}, {21, 2}, {20, 8}, {76, 10}, {80, 5},
+            {9, 4}, {49, 2}, {29, 7}, {54, 7}, {91, 3}, {9, 0}, {38, 4}, {70, 4}, {99, 9}
     };
     private static final Map<Integer, String> locationHashes = new HashMap<>();
     public LocationReader(HWND handle) {
@@ -37,21 +37,23 @@ public class LocationReader extends Reader {
     private void initialize() {
         if (locationHashes.isEmpty()) {
             String[] locations = new String[]{
-                    "kt", "tttc", "lpm", "bkd",
-                    "ktng", "bhc", "nnl", "lhc", "gn",
-                    "lm", "lssl", "lstk", "tbks",
-                    "tvd", "vdd", "dnd",
-                    "ptv", "klh", "td", "kdn",
-                    "ktdg", "tyl", "tyl-tkt", "tkt",
-                    "tt", "dm", "tld", "qv", "ksl", "lho", "dvd",
-                    "dps", "pvl", "vmn", "hht", "qdvmd",
-                    "khl", "htt", "lth", "bhd", "ncp"
+                    "kt", "ktng", "bnvp", "hyl", "tgt", "nnl",
+                    "bhc", "gn", "ptv", "td", "nl",
+                    "tvd", "vdd", "vdnd", "htks", "vdtl", "hsc",
+                    "bvt", "vul", "dc",
+                    "vmn", "hht", "hhks", "ktp", "hhtq",
+                    "dps", "pvl", "tptl", "btdbt",
+                    "khl", "htt", "tt",
+
             };
             int[] hashes = new int[]{
-                    36872, 34384, 11, 35208, 37128, 681, 11854, 33800, 33898, 33288,
-                    8220, 8, 2068, 32800, 2601, 712, 33289, 4120, 7681, 2089,
-                    37256, 2565, 2561, 4737, 4112, 56, 2752, 74, 4106, 4104,
-                    4505, 4888, 34312, 908, 33290, 6280, 6857, 73, 32776, 665, 200
+                    36872, 233736, 100748, 65544, 99458, 77390,
+                    66217, 33898, 33289, 7681, 33354,
+                    32800, 2601, 137768, 393, 68137, 25,
+                    6154, 66057, 584,
+                    908, 33290, 107406, 2376, 164362,
+                    4888, 34312, 99073, 39309,
+                    6857, 65609, 4112,
             };
             for (int i = 0; i < locations.length; i++) {
                 locationHashes.put(hashes[i], locations[i]);

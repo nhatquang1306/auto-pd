@@ -10,23 +10,23 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 
-public class TinhSu {
-    Account account;
+public class TinhSu extends Program {
+    // check for right boss
+    // make sure it doesn't go to another map
     BufferedImage lion;
     private final JButton startButton;
-    private boolean terminateFlag;
-    private final LocationReader lr;
-    private final CoordinatesReader cr;
-    boolean[] visited;
-    private static final Color mapBoxColor1 = new Color(123, 249, 47);
-    private static final Color mapBoxColor2 = new Color(141, 125, 81);
-    private static final Color mapBoxColor3 = new Color(1, 112, 136);
+    private static final Color lionColor1 = new Color(89, 142, 228);
+    private static final Color lionColor2 = new Color(116, 0, 0);
+    private static final Color lionColor3 = new Color(240, 25, 0);
 
     public TinhSu(HWND handle, double scale, JButton startButton) {
         try {
             this.lion = ImageIO.read(new File("app/data/lion.png"));
+            this.exit = ImageIO.read(new File("app/data/exit.png"));
         } catch (Exception _) {
 
         }
@@ -35,6 +35,7 @@ public class TinhSu {
         this.visited = new boolean[2];
 
         this.account = new Account(0, 0, handle, scale);
+        this.terminateFlag = false;
         this.startButton = startButton;
     }
 
@@ -50,6 +51,7 @@ public class TinhSu {
             int[] coordinates = new int[2];
             int increment = 1;
             while (!terminateFlag) {
+                if (account.isInBattle()) continue;
                 if (location.cth != null && System.currentTimeMillis() - start >= 1500000) {
                     useIncense();
                     getCheer(location);
@@ -58,25 +60,34 @@ public class TinhSu {
                 int[] newCoordinates = cr.read();
                 if (newCoordinates[0] == coordinates[0] && newCoordinates[1] == coordinates[1]) {
                     moveToNextLocation(location, index);
+                    if (!lr.read().equals(location.name)) goBack(location);
                     if (index == 0) increment = 1;
                     else if (index == location.mapCoordinates.length - 1) increment = -1;
                     index += increment;
                 }
                 coordinates = newCoordinates;
                 Stack<int[]> stack = new Stack<>();
-                findEnemies(stack);
+                findEnemies(stack, lion, -1, 200);
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
+                    if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
-                    if (arr[0] < 0 || arr[1] < 0 || arr[0] >= 800 || arr[1] >= 600) {
+                    if (arr[0] < 0 || arr[1] < 0 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
                         continue;
                     }
-                    if (arr[0] > 600 && arr[1] < 250) account.click(779, 38);
                     account.clickOnNpc(arr);
+                    waitUntilStationary();
                     if (isAtLocation(coordinates[0], coordinates[1]) && waitForDialogueBox()) {
-                        progressMatch();
+                        if (isCorrectEnemy()) {
+                            progressMatch();
+                        } else {
+                            account.click(557, 266);
+                            if (account.hasDialogueBox()) findExit();
+                        }
                     }
-                    if (arr[0] > 600 && arr[1] < 250 && !hasMapBox()) account.click(779, 38);
-                    if (location.cth != null && System.currentTimeMillis() - start >= 1500000) {
+                    if (!account.isInBattle() && !lr.read().equals(location.name)) {
+                        goBack(location);
+                        break;
+                    } else if (location.cth != null && System.currentTimeMillis() - start >= 1500000) {
                         break;
                     }
                 }
@@ -89,18 +100,56 @@ public class TinhSu {
         }
     }
 
-    private boolean hasMapBox() {
-        Color color1 = account.getPixelColor(782, 112);
-        Color color2 = account.getPixelColor(665, 100);
-        Color color3 = account.getPixelColor(650, 144);
-        return color1.equals(mapBoxColor1) && color2.equals(mapBoxColor2) && color3.equals(mapBoxColor3);
+    private void goBack(Location location) throws InterruptedException {
+        Map<String, int[]> map = switch (location.name) {
+            case "vdd" -> Map.of(
+                    "vdnd", new int[]{-613, 491},
+                    "htks", new int[]{256, 402},
+                    "vdtl", new int[]{533, 450},
+                    "bvt", new int[]{-202, 177},
+                    "hsc", new int[]{273, 455},
+                    "tvd", new int[]{-163, 193}
+            );
+            case "hht" -> Map.of(
+                    "vmn", new int[]{-151, 214},
+                    "hhks", new int[]{547, 498},
+                    "ktp", new int[]{-557, 438}
+            );
+            case "dps" -> Map.of(
+                    "kt", new int[]{-101, 495},
+                    "tptl", new int[]{614, 431},
+                    "pvl", new int[]{-245, 191},
+                    "btdbt", new int[]{299, 489},
+                    "ktp", new int[]{-579, 264}
+            );
+            case "khl" -> Map.of(
+                    "tt", new int[]{-164, 325},
+                    "htt", new int[]{-253, 488}
+            );
+            default -> new HashMap<>();
+        };
+        String cur = lr.read();
+        while (!terminateFlag && !map.containsKey(cur)) cur = lr.read();
+        int[] arr = map.get(cur);
+        if (arr[0] < 0) {
+            useMap(-arr[0], arr[1]);
+        } else {
+            account.click(arr);
+        }
+    }
+
+    private boolean isCorrectEnemy() {
+        Color color1 = account.getPixelColor(333, 126);
+        Color color2 = account.getPixelColor(339, 205);
+        Color color3 = account.getPixelColor(306, 175);
+        return color1.equals(lionColor1) && color2.equals(lionColor2) && color3.equals(lionColor3);
     }
 
     private void progressMatch() throws InterruptedException {
         account.click(255, 325);
         long start = System.currentTimeMillis();
         while (!terminateFlag && !account.isInBattle()) {
-            if (System.currentTimeMillis() - start >= 10000) {
+            if (System.currentTimeMillis() - start >= 5000) {
                 return;
             }
             Thread.sleep(200);
@@ -112,98 +161,15 @@ public class TinhSu {
 
     private void getCheer(Location location) throws InterruptedException {
         int[] cth = location.cth;
-        useMap(cth[0], cth[1], cth[2], cth[3]);
+        while (!terminateFlag && !isAtLocation(cth[2], cth[3])) {
+            if (!lr.read().equals(location.name)) goBack(location);
+            useMap(cth[0], cth[1]);
+        }
         account.clickOnNpc(cth[4], cth[5]);
         if (waitForDialogueBox()) {
             account.click(245, 305);
             if (waitForDialogueBox()) account.click(557, 266);
         }
-    }
-
-    private void useMap(int a, int b, int x, int y) throws InterruptedException {
-        account.click(766, 183);
-        if (!visited[0]) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visited[0] = true;
-        }
-        account.click(a, b);
-        account.click(766, 183);
-        long start = System.currentTimeMillis();
-        while (!terminateFlag && !isAtLocation(x, y)
-                && System.currentTimeMillis() - start < 50000) {
-            Thread.sleep(500);
-        }
-        Thread.sleep(500);
-    }
-
-    private void useIncense() throws InterruptedException {
-        if (terminateFlag) return;
-        account.click(569, 586);
-        if (!visited[1]) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visited[1] = true;
-        }
-        account.rightClick(450, 367);
-        account.click(569, 586);
-    }
-
-    private void moveToNextLocation(Location location, int index) throws InterruptedException {
-        if (terminateFlag) return;
-        int[] mc = location.mapCoordinates[index];
-        int[] c = location.coordinates[index];
-        useMap(mc[0], mc[1], c[0], c[1]);
-    }
-
-    private boolean isAtLocation(int x, int y) {
-        int[] coords = cr.read();
-        return coords[0] == x && coords[1] == y;
-    }
-
-    private void findEnemies(Stack<int[]> stack) {
-        BufferedImage fullScreen = lr.captureWindow(3, 26, 800, 600);
-        boolean[][] matched = new boolean[800][600];
-        for (int i = 3; i < fullScreen.getWidth(); i++) {
-            for (int j = 0; j < fullScreen.getHeight(); j++) {
-                if (matched[i][j] || fullScreen.getRGB(i, j) != -985088 || !imageMatch(i - 1, j, fullScreen)) {
-                    continue;
-                }
-                stack.push(new int[] {i + 60, j - 30});
-                for (int l = 0; l < lion.getWidth(); l++) {
-                    for (int m = 0; m < lion.getHeight(); m++) {
-                        if (i + l >= 0 && j + m >= 0 && i + l < 800 && j + m < 600) {
-                            matched[i + l][j + m] = true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean imageMatch(int x, int y, BufferedImage screen) {
-        int match = 0;
-        for (int i = 0; i < lion.getWidth(); i++) {
-            for (int j = 0; j < lion.getHeight(); j++) {
-                int color = lion.getRGB(i, j);
-                if (color == 0x00000000 || i + x < 0 || j + y < 0 || i + x >= 800 || j + y >= 600) {
-                    continue;
-                }
-                if (screen.getRGB(i + x, j + y) == color) {
-                    if (++match >= 200) return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean waitForDialogueBox() throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while (!terminateFlag && System.currentTimeMillis() - start < 5000) {
-            if (account.hasDialogueBox()) {
-                return true;
-            }
-            Thread.sleep(200);
-        }
-        return false;
     }
 
     public void setTerminateFlag() {
