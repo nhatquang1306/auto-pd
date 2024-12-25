@@ -67,7 +67,7 @@ public class TinhSu extends Program {
                 }
                 coordinates = newCoordinates;
                 Stack<int[]> stack = new Stack<>();
-                findEnemies(stack, lion, -1, 200);
+                findEnemies(stack, lion, -1, 340);
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
@@ -81,7 +81,7 @@ public class TinhSu extends Program {
                             progressMatch();
                         } else {
                             account.click(557, 266);
-                            if (account.hasDialogueBox()) findExit();
+                            account.click(findExit());
                         }
                     }
                     if (!account.isInBattle() && !lr.read().equals(location.name)) {
@@ -157,6 +157,7 @@ public class TinhSu extends Program {
         while (!terminateFlag && account.isInBattle()) {
             Thread.sleep(200);
         }
+        Thread.sleep(500);
     }
 
     private void getCheer(Location location) throws InterruptedException {

@@ -90,7 +90,7 @@ public class PhanDo extends Program {
                             progressMatch();
                         } else {
                             account.click(557, 266);
-                            if (account.hasDialogueBox()) account.click(findExit());
+                            account.click(findExit());
                         }
                     }
                     if (!account.isInBattle() && !lr.read().equals(location.name)) {
@@ -134,7 +134,7 @@ public class PhanDo extends Program {
                 continue;
             }
             while (!terminateFlag && !accounts[i].isInBattle()) {
-                if (System.currentTimeMillis() - start >= 10000) {
+                if (System.currentTimeMillis() - start >= 7500) {
                     return;
                 }
                 Thread.sleep(200);
@@ -166,6 +166,7 @@ public class PhanDo extends Program {
                 if (thread != null) thread.join();
             }
         }
+        Thread.sleep(500);
     }
 
     public void goBack(Location location) throws InterruptedException {

@@ -3,8 +3,11 @@ package Main;
 import TextReaders.CoordinatesReader;
 import TextReaders.LocationReader;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 import java.util.Stack;
 
@@ -76,13 +79,15 @@ public abstract class Program {
         }
     }
 
-    public int[] findExit() {
-        BufferedImage screen = cr.captureWindow(227, 280, 45, 90);
-        for (int row = 89; row >= 0; row--) {
-            int rgb = screen.getRGB(0, row);
-            if (rgb == -16711936 && imageMatch(0, row - 2, screen, exit, 120)) {
-                return new int[] {251, row + 287};
+    public int[] findExit() throws InterruptedException, IOException {
+        while (account.hasDialogueBox()) {
+            BufferedImage screen = cr.captureWindow(227, 280, 1, 180);
+            for (int row = screen.getHeight() - 1; row >= 0; row--) {
+                int rgb = screen.getRGB(0, row);
+                if (rgb == -16711936) return new int[] {251, row + 280};
             }
+
+            Thread.sleep(500);
         }
         return new int[2];
     }
@@ -104,7 +109,7 @@ public abstract class Program {
 
     public boolean waitForDialogueBox() throws InterruptedException {
         long start = System.currentTimeMillis();
-        while (!terminateFlag && System.currentTimeMillis() - start < 5000) {
+        while (!terminateFlag && System.currentTimeMillis() - start < 3000) {
             if (account.hasDialogueBox()) {
                 return true;
             }
