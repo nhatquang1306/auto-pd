@@ -66,7 +66,7 @@ public abstract class Program {
                 if (matched[i][j] || fullScreen.getRGB(i, j) != -985088 || !imageMatch(i + x, j, fullScreen, template, match)) {
                     continue;
                 }
-                stack.push(new int[] {i + 60, j - 30});
+                stack.push(new int[] {i + 60, j - 10});
                 for (int l = 0; l < template.getWidth(); l++) {
                     for (int m = 0; m < template.getHeight(); m++) {
                         if (i + l >= 0 && j + m >= 0 && i + l < 800 && j + m < 600) {
