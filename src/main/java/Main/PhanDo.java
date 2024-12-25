@@ -27,7 +27,6 @@ public class PhanDo extends Program {
     public PhanDo(int[] skills, int[] pets, HWND[] handles, double scale, JButton startButton) {
         try {
             this.traitor = ImageIO.read(new File("app/data/traitor.png"));
-            this.exit = ImageIO.read(new File("app/data/exit.png"));
         } catch (Exception _) {
 
         }

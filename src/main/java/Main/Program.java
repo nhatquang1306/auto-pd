@@ -14,7 +14,6 @@ import java.util.Stack;
 public abstract class Program {
     public boolean terminateFlag;
     public Account account;
-    public BufferedImage exit;
     public LocationReader lr;
     public CoordinatesReader cr;
     public boolean[] visited;

@@ -26,7 +26,6 @@ public class TinhSu extends Program {
     public TinhSu(HWND handle, double scale, JButton startButton) {
         try {
             this.lion = ImageIO.read(new File("app/data/lion.png"));
-            this.exit = ImageIO.read(new File("app/data/exit.png"));
         } catch (Exception _) {
 
         }
