@@ -25,6 +25,7 @@ public class App {
     public static JTextField[] uidFields;
     public static JButton[] skillButtons, petButtons;
     public static Map<Integer, HWND> handleMap;
+    public static final Object lock = new Object();
 
 
     public static void main(String[] args) {
@@ -66,41 +67,40 @@ public class App {
         }
 
         gbc.gridy = 6;
+
         gbc.gridx = 1;
-        JButton startButton1 = new JButton("Tỉnh Sư");
+        JComboBox dropdown1 = new JComboBox(new String[] {"Phản Đồ", "Tỉnh Sư", "VTTĐ"});
+        panel.add(dropdown1, gbc);
+
+        gbc.gridx = 2;
+        JButton startButton1 = new JButton("Start");
         startButton1.setPreferredSize(skillDimensions);
         startButton1.setMargin(buttonPadding);
         startButton1.addActionListener(e -> {
-            startTS(startButton1, 0);
+            startProgram(dropdown1, startButton1, 0);
         });
         panel.add(startButton1, gbc);
 
-        gbc.gridx = 2;
-        JButton startButton2 = new JButton("Phản Đồ");
+        gbc.gridx = 4;
+        JComboBox dropdown2 = new JComboBox(new String[] {"Phản Đồ", "Tỉnh Sư", "VTTĐ"});
+        panel.add(dropdown2, gbc);
+
+        gbc.gridx = 5;
+        JButton startButton2 = new JButton("Start");
         startButton2.setPreferredSize(skillDimensions);
         startButton2.setMargin(buttonPadding);
         startButton2.addActionListener(e -> {
-            startPD(startButton2, 0);
+            startProgram(dropdown2, startButton2, 5);
         });
         panel.add(startButton2, gbc);
 
-        gbc.gridx = 4;
-        JButton startButton3 = new JButton("Tỉnh Sư");
-        startButton3.setPreferredSize(skillDimensions);
-        startButton3.setMargin(buttonPadding);
-        startButton3.addActionListener(e -> {
-            startTS(startButton3, 5);
-        });
-        panel.add(startButton3, gbc);
+        gbc.gridheight = 2;
+        gbc.gridx = 6;
 
-        gbc.gridx = 5;
-        JButton startButton4 = new JButton("Phản Đồ");
-        startButton4.setPreferredSize(skillDimensions);
-        startButton4.setMargin(buttonPadding);
-        startButton4.addActionListener(e -> {
-            startPD(startButton4, 5);
-        });
-        panel.add(startButton4, gbc);
+        gbc.gridy = 1;
+        panel.add(getHideButton(), gbc);
+        gbc.gridy = 3;
+        panel.add(getShowButton(), gbc);
 
         frame.pack();
         frame.setVisible(true);
@@ -151,7 +151,13 @@ public class App {
         panel.add(petButtons[i], gbc);
     }
 
-    private static void startPD(JButton startButton, int offset) {
+    private static void startProgram(JComboBox dropdown, JButton startButton, int offset) {
+        int i = dropdown.getSelectedIndex();
+        if (i == 1) startTS(startButton, offset);
+        else startPD(startButton, offset, i == 0);
+    }
+
+    private static void startPD(JButton startButton, int offset, boolean isPD) {
         if (startButton.getText().equals("Stop")) {
             return;
         }
@@ -180,20 +186,24 @@ public class App {
             pets[i] = keyMap.get(petButtons[j].getText());
             handles[i] = handleMap.get(UIDs[i]);
         }
-
-        PhanDo phanDo = new PhanDo(skills, pets, handles, scale, startButton);
+        Program program;
+        if (isPD) {
+            program = new PhanDo(skills, pets, handles, scale, startButton);
+        } else {
+            program = new VanTieu(skills, pets, handles, scale, startButton);
+        }
         startButton.setBackground(runningColor);
         startButton.setText("Stop");
         ActionListener actionListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                phanDo.setTerminateFlag();
+                program.setTerminateFlag();
                 startButton.removeActionListener(this);
             }
         };
         startButton.addActionListener(actionListener);
 
-        new Thread(phanDo::run).start();
+        new Thread(program::run).start();
     }
 
     private static void startTS(JButton startButton, int offset) {
@@ -227,6 +237,49 @@ public class App {
         startButton.addActionListener(actionListener);
 
         new Thread(tinhSu::run).start();
+    }
+
+    public static JButton getShowButton() {
+        Image scaledImg = new ImageIcon("app/data/sun.png").getImage().getScaledInstance(22, 22, Image.SCALE_SMOOTH);
+        JButton button = new JButton(new ImageIcon(scaledImg));
+        button.setMargin(new Insets(0, 3, 0, 8));
+
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.addActionListener(e -> {
+            synchronized (lock) {
+                handleMap = getAllWindows();
+                for (HWND handle : handleMap.values()) {
+                    User32.INSTANCE.ShowWindow(handle, 8);
+                }
+            }
+        });
+        return button;
+    }
+
+    public static JButton getHideButton() {
+        Image scaledImg = new ImageIcon("app/data/moon.png").getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+        JButton button = new JButton(new ImageIcon(scaledImg));
+        button.setMargin(new Insets(0, 3, 0, 8));
+
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.addActionListener(e -> {
+            synchronized (lock) {
+                handleMap = getAllWindows();
+                for (JTextField uidField : uidFields) {
+                    try {
+                        int UID = Integer.parseInt(uidField.getText());
+                        if (handleMap.containsKey(UID)) {
+                            User32.INSTANCE.ShowWindow(handleMap.get(UID), 0);
+                        }
+                    } catch (Exception _) {
+
+                    }
+                }
+            }
+        });
+        return button;
     }
 
     public static Map<Integer, HWND> getAllWindows() {

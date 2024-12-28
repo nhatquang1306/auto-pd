@@ -10,26 +10,25 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
 public class TinhSu extends Program {
-    // check for right boss
-    // make sure it doesn't go to another map
-    BufferedImage lion;
-    private final JButton startButton;
-    private static final Color lionColor1 = new Color(89, 142, 228);
-    private static final Color lionColor2 = new Color(116, 0, 0);
-    private static final Color lionColor3 = new Color(240, 25, 0);
+    BufferedImage[] enemies;
+    int[][] enemiesInfo;
+    private static final int[] lionColors = new int[] {14978649, 116, 6640};
+    private static final int[] earthColors = new int[] {13363962, 11257839, 788741};
 
     public TinhSu(HWND handle, double scale, JButton startButton) {
         try {
-            this.lion = ImageIO.read(new File("app/data/lion.png"));
+            this.enemies = new BufferedImage[] {ImageIO.read(new File("app/data/lion1.png")), ImageIO.read(new File("app/data/lion2.png"))};
+            this.enemiesInfo = new int[][] {{-985088, 340, -1, 0, 60, -10}, {-3166449, 200, 0, 0, 0, 10}};
         } catch (Exception _) {
 
         }
-        this.lr = new LocationReader(handle);
+        this.lr = new LocationReader(handle, 0);
         this.cr = new CoordinatesReader(handle);
         this.visited = new boolean[2];
 
@@ -38,6 +37,7 @@ public class TinhSu extends Program {
         this.startButton = startButton;
     }
 
+    @Override
     public void run() {
         try {
             Location location = new Location(lr.read());
@@ -66,7 +66,9 @@ public class TinhSu extends Program {
                 }
                 coordinates = newCoordinates;
                 Stack<int[]> stack = new Stack<>();
-                findEnemies(stack, lion, -1, 340);
+                for (int i = 0; i < enemies.length && stack.isEmpty(); i++) {
+                    findEnemies(stack, enemies[i], enemiesInfo[i]);
+                }
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
@@ -75,7 +77,7 @@ public class TinhSu extends Program {
                     }
                     account.clickOnNpc(arr);
                     waitUntilStationary();
-                    if (isAtLocation(coordinates[0], coordinates[1]) && waitForDialogueBox()) {
+                    if (isAtLocation(coordinates[0], coordinates[1]) && waitForDialogueBox(3)) {
                         if (isCorrectEnemy()) {
                             progressMatch();
                         } else {
@@ -95,7 +97,7 @@ public class TinhSu extends Program {
 
         } finally {
             startButton.setBackground(null);
-            startButton.setText("Tỉnh Sư");
+            startButton.setText("Start");
         }
     }
 
@@ -138,10 +140,8 @@ public class TinhSu extends Program {
     }
 
     private boolean isCorrectEnemy() {
-        Color color1 = account.getPixelColor(333, 126);
-        Color color2 = account.getPixelColor(339, 205);
-        Color color3 = account.getPixelColor(306, 175);
-        return color1.equals(lionColor1) && color2.equals(lionColor2) && color3.equals(lionColor3);
+        int[] hashes = new int[] {account.getPixelHash(333, 126), account.getPixelHash(339, 205), account.getPixelHash(306, 175)};
+        return Arrays.equals(hashes, lionColors) || Arrays.equals(hashes, earthColors);
     }
 
     private void progressMatch() throws InterruptedException {
@@ -166,12 +166,13 @@ public class TinhSu extends Program {
             useMap(cth[0], cth[1]);
         }
         account.clickOnNpc(cth[4], cth[5]);
-        if (waitForDialogueBox()) {
+        if (waitForDialogueBox(3)) {
             account.click(245, 305);
-            if (waitForDialogueBox()) account.click(557, 266);
+            if (waitForDialogueBox(3)) account.click(557, 266);
         }
     }
 
+    @Override
     public void setTerminateFlag() {
         this.terminateFlag = true;
     }

@@ -7,6 +7,7 @@ import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.win32.StdCallLibrary;
 
 import java.awt.*;
+import java.util.Arrays;
 
 public class Account {
     private final int skill;
@@ -16,15 +17,12 @@ public class Account {
     private boolean terminateFlag;
     private boolean catchPet;
     private final Object lock = new Object();
-    public static final Color inMapColor = new Color(90, 46, 2);
-    public static final Color moveBar = new Color(81, 71, 34);
-    public static final Color petMoveBar = new Color(49, 41, 15);
-    public static final Color white = new Color(254, 254, 254);
-    private static final Color dialogueBoxColor = new Color(20, 17, 0);
-    private static final Color relogColor1 = new Color(89, 80, 50);
-    private static final Color relogColor2 = new Color(92, 100, 84);
-    private static final Color relogColor3 = new Color(180, 161, 112);
-    private static final Color relogColor4 = new Color(21, 39, 82);
+    public static final int inMapColor = 142938;
+    public static final int moveBar = 2246481;
+    public static final int petMoveBar = 993585;
+    public static final int white = 16711422;
+    private static final int[] dialogueBoxColors = new int[] {0, 0, 4372};
+    private static final int[] relogColors = new int[] {3297369, 5530716, 7381428, 5383957};
 
 
     public Account(int skill, int pet, HWND handle, double scale) {
@@ -40,7 +38,7 @@ public class Account {
         try {
             if (catchPet) click(557, 266);
             while (!terminateFlag && isInBattle()) {
-                while (!terminateFlag && !getPixelColor(782, 380).equals(moveBar)) {
+                while (!terminateFlag && getPixelHash(782, 380) != moveBar) {
                     if (!isInBattle() || hasDialogueBox() || isRelogged()) {
                         catchPet = false;
                         return;
@@ -56,7 +54,7 @@ public class Account {
                     if (pet < 12 && waitForPetPrompt()) petAttack();
                 }
 
-                while (!terminateFlag && (getPixelColor(378, 90).equals(white) || getPixelColor(405, 325).equals(white))) {
+                while (!terminateFlag && (getPixelHash(378, 90) == white || getPixelHash(405, 325) == white)) {
                     Thread.sleep(200);
                 }
             }
@@ -67,11 +65,9 @@ public class Account {
     }
 
     public boolean isRelogged() {
-        Color color1 = getPixelColor(553, 301);
-        Color color2 = getPixelColor(264, 301);
-        Color color3 = getPixelColor(552, 418);
-        Color color4 = getPixelColor(384, 391);
-        return color1.equals(relogColor1) && color2.equals(relogColor2) && color3.equals(relogColor3) && color4.equals(relogColor4);
+        int[] hashes = new int[] {getPixelHash(553, 301), getPixelHash(264, 301),
+                getPixelHash(552, 418), getPixelHash(384, 391)};
+        return Arrays.equals(hashes, relogColors);
     }
 
     private void ropeIn() throws InterruptedException {
@@ -107,7 +103,7 @@ public class Account {
     private boolean waitForPetPrompt() throws InterruptedException {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < 7000 && !terminateFlag) {
-            if (getPixelColor(746, 229).equals(petMoveBar)) {
+            if (getPixelHash(746, 229) == petMoveBar) {
                 return true;
             }
             Thread.sleep(200);
@@ -116,14 +112,12 @@ public class Account {
     }
 
     public boolean hasDialogueBox() {
-        Color color1 = getPixelColor(216, 304);
-        Color color2 = getPixelColor(588, 317);
-        Color color3 = getPixelColor(419, 248);
-        return color1.equals(Color.BLACK) && color2.equals(Color.BLACK) && color3.equals(dialogueBoxColor);
+        int[] hashes = new int[] {getPixelHash(216, 304), getPixelHash(588, 317), getPixelHash(419, 248)};
+        return Arrays.equals(hashes, dialogueBoxColors);
     }
 
     public boolean isInBattle() {
-        return !getPixelColor(778, 38).equals(inMapColor);
+        return getPixelHash(778, 38) != inMapColor;
     }
 
     public void setCatchPet() {
@@ -153,12 +147,12 @@ public class Account {
             long x = (long)Math.floor((a - 3) * scale);
             long y = (long)Math.floor((b - 26) * scale);
             WinDef.LPARAM lParam = new WinDef.LPARAM((y << 16) | (x & 0xFFFF));
-            Color color = getPixelColor(a, b);
+            int hash = getPixelHash(a, b);
             int count = 0;
             do {
                 User32.INSTANCE.SendMessage(handle, WinUser.WM_MOUSEMOVE, new WinDef.WPARAM(0), lParam);
                 Thread.sleep(200);
-            } while (!terminateFlag && count++ < 5 && getPixelColor(a, b).equals(color));
+            } while (!terminateFlag && count++ < 5 && getPixelHash(a, b) == hash);
             User32.INSTANCE.SendMessage(handle, WinUser.WM_LBUTTONDOWN, new WinDef.WPARAM(WinUser.MK_LBUTTON), lParam);
             Thread.sleep(100);
             User32.INSTANCE.SendMessage(handle, WinUser.WM_LBUTTONUP, new WinDef.WPARAM(0), lParam);
@@ -217,7 +211,7 @@ public class Account {
         return new int[]{m.x - rect.x, m.y - rect.y};
     }
 
-    public Color getPixelColor(int x, int y) {
+    public int getPixelHash(int x, int y) {
         x -= 3;
         y -= 26;
         // Get the device context of the window
@@ -226,9 +220,7 @@ public class Account {
         // Get the color of the specified pixel
         int pixelColor = MyGDI32.INSTANCE.GetPixel(hdc, x, y);
         User32.INSTANCE.ReleaseDC(handle, hdc); // Release the DC
-
-        // Return the color as a Color object
-        return new Color(pixelColor & 0xFF, (pixelColor >> 8) & 0xFF, (pixelColor >> 16) & 0xFF);
+        return pixelColor;
     }
 
     public interface MyGDI32 extends StdCallLibrary {

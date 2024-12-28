@@ -4,10 +4,12 @@ import TextReaders.CoordinatesReader;
 import TextReaders.LocationReader;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
@@ -17,6 +19,7 @@ public abstract class Program {
     public LocationReader lr;
     public CoordinatesReader cr;
     public boolean[] visited;
+    public JButton startButton;
 
     public void waitUntilStationary() throws InterruptedException {
         int[] coordinates = new int[2];
@@ -28,6 +31,11 @@ public abstract class Program {
     public boolean isAtLocation(int x, int y) {
         int[] coords = cr.read();
         return coords[0] == x && coords[1] == y;
+    }
+
+    public boolean isAtLocation(int x, int y, String location) {
+        int[] coords = cr.read();
+        return coords[0] == x && coords[1] == y && location.equals(lr.read());
     }
 
     public void useMap(int a, int b) throws InterruptedException {
@@ -58,17 +66,18 @@ public abstract class Program {
         useMap(mc[0], mc[1]);
     }
 
-    public void findEnemies(Stack<int[]> stack, BufferedImage template, int x, int match) {
+    public void findEnemies(Stack<int[]> stack, BufferedImage enemy, int[] info) {
         BufferedImage fullScreen = lr.captureWindow(3, 26, 800, 600);
         boolean[][] matched = new boolean[800][600];
         for (int i = 0; i < fullScreen.getWidth(); i++) {
             for (int j = 0; j < fullScreen.getHeight(); j++) {
-                if (matched[i][j] || fullScreen.getRGB(i, j) != -985088 || !imageMatch(i + x, j, fullScreen, template, match)) {
+                if (matched[i][j] || fullScreen.getRGB(i, j) != info[0] ||
+                        !imageMatch(i + info[2], j + info[3], fullScreen, enemy, info[1])) {
                     continue;
                 }
-                stack.push(new int[] {i + 60, j - 10});
-                for (int l = 0; l < template.getWidth(); l++) {
-                    for (int m = 0; m < template.getHeight(); m++) {
+                stack.push(new int[] {i + info[4], j + info[5]});
+                for (int l = 0; l < enemy.getWidth(); l++) {
+                    for (int m = 0; m < enemy.getHeight(); m++) {
                         if (i + l >= 0 && j + m >= 0 && i + l < 800 && j + m < 600) {
                             matched[i + l][j + m] = true;
                         }
@@ -78,14 +87,13 @@ public abstract class Program {
         }
     }
 
-    public int[] findExit() throws InterruptedException, IOException {
+    public int[] findExit() throws InterruptedException {
         while (account.hasDialogueBox()) {
             BufferedImage screen = cr.captureWindow(227, 280, 1, 180);
             for (int row = screen.getHeight() - 1; row >= 0; row--) {
                 int rgb = screen.getRGB(0, row);
                 if (rgb == -16711936) return new int[] {251, row + 280};
             }
-
             Thread.sleep(500);
         }
         return new int[2];
@@ -106,14 +114,23 @@ public abstract class Program {
         return false;
     }
 
-    public boolean waitForDialogueBox() throws InterruptedException {
+    public boolean waitForDialogueBox(int time) throws InterruptedException {
         long start = System.currentTimeMillis();
-        while (!terminateFlag && System.currentTimeMillis() - start < 3000) {
+        time *= 1000;
+        while (!terminateFlag && System.currentTimeMillis() - start < time) {
             if (account.hasDialogueBox()) {
                 return true;
             }
             Thread.sleep(200);
         }
         return false;
+    }
+
+    public void setTerminateFlag() {
+
+    }
+
+    public void run() {
+
     }
 }

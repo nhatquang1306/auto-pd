@@ -11,6 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -18,19 +19,18 @@ import java.util.Stack;
 
 public class PhanDo extends Program {
     Account[] accounts;
-    BufferedImage traitor;
-    private final JButton startButton;
-    private static final Color traitorColor1 = new Color(249, 179, 127);
-    private static final Color traitorColor2 = new Color(81, 58, 44);
-    private static final Color traitorColor3 = new Color(168, 145, 130);
+    BufferedImage[] enemies;
+    int[][] enemiesInfo;
+    private static final int[] traitorColors = new int[] {8369145, 2898513, 8556968};
 
     public PhanDo(int[] skills, int[] pets, HWND[] handles, double scale, JButton startButton) {
         try {
-            this.traitor = ImageIO.read(new File("app/data/traitor.png"));
+            this.enemies = new BufferedImage[] {ImageIO.read(new File("app/data/traitor1.png")), ImageIO.read(new File("app/data/traitor2.png"))};
+            this.enemiesInfo = new int[][] {{-985088, 250, -3, 0, 60, -10}, {-13095652, 200, 0, 0, 0, 0}};
         } catch (Exception _) {
 
         }
-        this.lr = new LocationReader(handles[0]);
+        this.lr = new LocationReader(handles[0], 0);
         this.cr = new CoordinatesReader(handles[0]);
         this.visited = new boolean[2];
 
@@ -45,6 +45,7 @@ public class PhanDo extends Program {
         this.startButton = startButton;
     }
 
+    @Override
     public void run() {
         try {
             Location location = new Location(lr.read());
@@ -75,7 +76,9 @@ public class PhanDo extends Program {
                 }
                 coordinates = newCoordinates;
                 Stack<int[]> stack = new Stack<>();
-                findEnemies(stack, traitor, -3, 250);
+                for (int i = 0; i < enemies.length && stack.isEmpty(); i++) {
+                    findEnemies(stack, enemies[i], enemiesInfo[i]);
+                }
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
@@ -84,7 +87,7 @@ public class PhanDo extends Program {
                     }
                     account.clickOnNpc(arr);
                     waitUntilStationary();
-                    if (isAtLocation(coordinates[0], coordinates[1]) && waitForDialogueBox()) {
+                    if (isAtLocation(coordinates[0], coordinates[1]) && waitForDialogueBox(3)) {
                         if (isCorrectEnemy()) {
                             progressMatch();
                         } else {
@@ -104,7 +107,7 @@ public class PhanDo extends Program {
 
         } finally {
             startButton.setBackground(null);
-            startButton.setText("Phản Đồ");
+            startButton.setText("Start");
         }
     }
 
@@ -115,14 +118,14 @@ public class PhanDo extends Program {
             useMap(cth[0], cth[1]);
         }
         account.clickOnNpc(cth[4], cth[5]);
-        if (waitForDialogueBox()) {
+        if (waitForDialogueBox(3)) {
             account.click(245, 305);
-            if (waitForDialogueBox()) account.click(557, 266);
+            if (waitForDialogueBox(3)) account.click(557, 266);
         }
     }
 
     private void progressMatch() throws InterruptedException {
-        accounts[0].click(255, 304);
+        account.click(255, 304);
         long start = System.currentTimeMillis();
         for (int i = 0; i < 5; i++) {
             if (accounts[i] == null || accounts[i].isRelogged()) {
@@ -204,12 +207,11 @@ public class PhanDo extends Program {
     }
 
     private boolean isCorrectEnemy() {
-        Color color1 = account.getPixelColor(304, 150);
-        Color color2 = account.getPixelColor(304, 103);
-        Color color3 = account.getPixelColor(303, 218);
-        return color1.equals(traitorColor1) && color2.equals(traitorColor2) && color3.equals(traitorColor3);
+        int[] hashes = new int[] {account.getPixelHash(304, 150), account.getPixelHash(304, 103), account.getPixelHash(303, 218)};
+        return Arrays.equals(hashes, traitorColors);
     }
 
+    @Override
     public void setTerminateFlag() {
         this.terminateFlag = true;
         for (Account account : accounts) {
