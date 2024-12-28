@@ -47,11 +47,6 @@ public class LocationReader extends Reader {
                 return getPixelHash(659, 36) != 15131358 ? "bbdt1" : "bbdt2";
             }
         }
-//        BufferedImage image = cr.captureWindow(659, 36, 1, 1);
-//        ImageIO.write(image, "png", new File("screenshot.png"));
-//        System.out.println(image.getRGB(0, 0) == -1);
-
-        //15131358
         return location == null ? "" : location;
     }
 
