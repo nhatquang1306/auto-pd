@@ -11,10 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 
 public class PhanDo extends Program {
@@ -37,9 +34,10 @@ public class PhanDo extends Program {
         this.accounts = new Account[5];
         for (int i = 0; i < 5; i++) {
             if (handles[i] == null) continue;
-            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale);
+            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale, false);
         }
         this.account = accounts[0];
+        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
         this.terminateFlag = false;
 
         this.startButton = startButton;
@@ -50,6 +48,7 @@ public class PhanDo extends Program {
         try {
             Location location = new Location(lr.read());
             int index = 0;
+            detectItems(true);
             useIncense();
             getCheer(location);
             long start = System.currentTimeMillis();

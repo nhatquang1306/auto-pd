@@ -10,10 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class TinhSu extends Program {
     BufferedImage[] enemies;
@@ -32,8 +29,9 @@ public class TinhSu extends Program {
         this.cr = new CoordinatesReader(handle);
         this.visited = new boolean[2];
 
-        this.account = new Account(0, 0, handle, scale);
+        this.account = new Account(0, 0, handle, scale, false);
         this.terminateFlag = false;
+        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
         this.startButton = startButton;
     }
 
@@ -42,6 +40,7 @@ public class TinhSu extends Program {
         try {
             Location location = new Location(lr.read());
             int index = 0;
+            detectItems(true);
             if (location.cth != null) {
                 useIncense();
                 getCheer(location);

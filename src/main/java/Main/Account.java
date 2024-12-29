@@ -16,6 +16,7 @@ public class Account {
     private final HWND handle;
     private boolean terminateFlag;
     private boolean catchPet;
+    private int enemyA, enemyB;
     private final Object lock = new Object();
     public static final int inMapColor = 142938;
     public static final int moveBar = 2246481;
@@ -25,13 +26,20 @@ public class Account {
     private static final int[] relogColors = new int[] {3297369, 5530716, 7381428, 5383957};
 
 
-    public Account(int skill, int pet, HWND handle, double scale) {
+    public Account(int skill, int pet, HWND handle, double scale, boolean isVTTD) {
         this.skill = skill;
         this.pet = pet;
         this.scale = scale;
         this.handle = handle;
         this.terminateFlag = handle == null;
         this.catchPet = false;
+        if (isVTTD) {
+            enemyA = 355;
+            enemyB = 192;
+        } else {
+            enemyA = 231;
+            enemyB = 201;
+        }
     }
 
     public void run() {
@@ -42,6 +50,8 @@ public class Account {
                     if (!isInBattle() || hasDialogueBox() || isRelogged()) {
                         catchPet = false;
                         return;
+                    } else if (catchPet && getPixelHash(746, 229) == petMoveBar) {
+                        break;
                     }
                     Thread.sleep(200);
                 }
@@ -71,8 +81,10 @@ public class Account {
     }
 
     private void ropeIn() throws InterruptedException {
-        click(759, 359);
-        clickOnNpc(231, 201);
+        if (getPixelHash(746, 229) != petMoveBar) {
+            click(759, 359);
+            clickOnNpc(231, 201);
+        }
     }
 
     private void characterAttack() throws InterruptedException {
@@ -84,7 +96,7 @@ public class Account {
             click(375 + skill * 35, 548);
         }
         Thread.sleep(200);
-        clickOnNpc(231, 201);
+        clickOnNpc(enemyA, enemyB);
     }
 
     private void petAttack() throws InterruptedException {
@@ -97,7 +109,7 @@ public class Account {
             click(254 + pet * 37, 290);
         }
         Thread.sleep(200);
-        clickOnNpc(231, 201);
+        clickOnNpc(enemyA, enemyB);
     }
 
     private boolean waitForPetPrompt() throws InterruptedException {

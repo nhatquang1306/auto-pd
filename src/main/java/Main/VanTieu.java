@@ -5,6 +5,7 @@ import TextReaders.LocationReader;
 import com.sun.jna.platform.win32.WinDef;
 
 import javax.swing.*;
+import java.io.IOException;
 import java.util.*;
 
 public class VanTieu extends Program {
@@ -24,10 +25,11 @@ public class VanTieu extends Program {
         this.accounts = new Account[5];
         for (int i = 0; i < 5; i++) {
             if (handles[i] == null) continue;
-            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale);
+            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale, true);
         }
         this.account = accounts[0];
         this.terminateFlag = false;
+        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
         if (mapInfos.isEmpty()) fillMapInfos();
 
         this.startButton = startButton;
@@ -36,6 +38,7 @@ public class VanTieu extends Program {
     @Override
     public void run() {
         try {
+            detectItems(true);
             useIncense();
             long start = System.currentTimeMillis();
             while (!terminateFlag) {
@@ -43,11 +46,10 @@ public class VanTieu extends Program {
                     useIncense();
                     start = System.currentTimeMillis();
                 }
-                goToTTTC();
+                if (!goToTTTC()) break;
                 String destination = receiveQuest();
-                if (destination.isBlank()) break;
                 account.click(557, 266);
-                goToDestination(destination, mapInfos.get(destination));
+                if (destination.isBlank() || !goToDestination(destination, mapInfos.get(destination))) break;
                 do {
                     account.click(642, 268);
                 } while (!terminateFlag && !waitForDialogueBox(50));
@@ -62,37 +64,37 @@ public class VanTieu extends Program {
 
     }
 
-    private void goToTTTC() throws InterruptedException {
-        if (terminateFlag) return;
-        while (!terminateFlag && !isAtLocation(18, 72, "tttc")) {
-            account.click(569, 586);
-            if (!visited[1]) {
-                if (account.hasDialogueBox()) account.click(557, 266);
-                visited[1] = true;
+    private boolean goToTTTC() throws InterruptedException, IOException {
+        if (terminateFlag) return true;
+        while (!terminateFlag && !isAtLocation(24, 77, "tttc")) {
+            if (!lr.read().equals("kt")) {
+                if (!goByTicket("lm", mapInfos.get("lm"))){
+                    return false;
+                }
+                useTransport(1);
             }
-            if (account.getPixelHash(441, 415) == 1772040) {
-                account.rightClick(655, 367);
-            } else {
-                account.rightClick(447, 409);
-            }
-            waitForDialogueBox(5);
-            account.click(296, 286);
-            waitForDialogueBox(5);
-            account.click(296, 286);
+            long start = -30000;
             while (!terminateFlag && !lr.read().equals("tttc")) {
+                if (System.currentTimeMillis() - start > 30000) {
+                    useMap(102, 421);
+                    start = System.currentTimeMillis();
+                }
+            }
+            account.click(171, 240);
+            while (!terminateFlag && !isAtLocation(24, 77)) {
                 Thread.sleep(500);
             }
-            account.click(569, 586);
         }
+        return true;
     }
 
-    private String receiveQuest() throws InterruptedException {
+    private String receiveQuest() throws InterruptedException, IOException {
         if (terminateFlag) return "";
         do {
-            if (!isAtLocation(18, 72, "tttc")) {
-                goToTTTC();
+            if (!isAtLocation(24, 77, "tttc")) {
+                if (!goToTTTC()) return "";
             }
-            account.clickOnNpc(300, 129);
+            account.clickOnNpc(97, 126);
         } while (!terminateFlag && !waitForDialogueBox(5));
         account.click(261, 325);
         waitForDialogueBox(5);
@@ -101,33 +103,26 @@ public class VanTieu extends Program {
         return dr.read();
     }
 
-    private void goToDestination(String destination, int[] mapInfo) throws InterruptedException {
-        if (terminateFlag) return;
+    private boolean goToDestination(String destination, int[] mapInfo) throws InterruptedException, IOException {
+        if (terminateFlag) return true;
         if (mapInfo[0] == 0) {
-            goByTicket(mapInfo);
-            if (destination.equals("tvd")) goToTVD();
+            if (destination.equals("tvd")) {
+                if (goByTicket("lm", mapInfos.get("lm"))) {
+                    useTransport(0);
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return goByTicket(destination, mapInfo);
+            }
         } else {
             goByDP(destination, mapInfo);
+            return true;
         }
-        while (!terminateFlag && !lr.read().equals(destination)) {
-            Thread.sleep(500);
-        }
-        if (!visitedLocations.contains(destination)) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visitedLocations.add(destination);
-        }
-        account.click(569, 586);
     }
 
-    private void goToTVD() throws InterruptedException {
-        while (!terminateFlag && !lr.read().equals("lm")) {
-            Thread.sleep(500);
-        }
-        if (!visitedLocations.contains("lm")) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visitedLocations.add("lm");
-        }
-
+    private void useTransport(int i) throws InterruptedException {
         if (terminateFlag) return;
         long start = -10000;
         int limit;
@@ -138,60 +133,82 @@ public class VanTieu extends Program {
                     start = System.currentTimeMillis();
                 }
                 limit = 1;
-                continue;
+            } else {
+                account.clickOnNpc(386, 168);
+                limit = 5;
             }
-            account.clickOnNpc(386, 168);
-            limit = 5;
         } while (!terminateFlag && !waitForDialogueBox(limit));
-        account.click(252, 286);
-    }
-
-    private void goByTicket(int[] mapInfo) throws InterruptedException {
-        account.click(569, 586);
-        if (!visited[1]) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visited[1] = true;
-        }
-        account.rightClick(610, 367);
-        waitForDialogueBox(5);
-        account.click(254, 304 + 18 * mapInfo[1]);
-    }
-
-    private void goByDP(String destination, int[] mapInfo) throws InterruptedException {
-        account.click(569, 586);
-        if (!visited[1]) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visited[1] = true;
-        }
-        if (account.getPixelHash(441, 415) == 1772040) {
-            account.rightClick(655, 367);
-        } else {
-            account.rightClick(447, 409);
-        }
-        waitForDialogueBox(5);
-        account.click(296, 304);
-        waitForDialogueBox(5);
-        account.click(296, 286);
-        while (!terminateFlag && !lr.read().equals("kt")) {
+        account.click(252, 286 + 18 * i);
+        String destination = i == 0 ? "tvd" : "kt";
+        while (!terminateFlag && !lr.read().equals(destination)) {
             Thread.sleep(500);
         }
-        Thread.sleep(300);
+    }
 
+    private boolean goByTicket(String destination, int[] mapInfo) throws InterruptedException, IOException {
+        account.click(569, 586);
+        if (!visited[1]) {
+            if (account.hasDialogueBox()) account.click(557, 266);
+            visited[1] = true;
+        }
+        if (hasItems(1)) {
+            account.rightClick(itemQueues[1].peek());
+        } else {
+            return false;
+        }
+        waitForDialogueBox(5);
+        account.click(254, 304 + 18 * mapInfo[1]);
+        while (!terminateFlag && !lr.read().equals(destination)) {
+            Thread.sleep(500);
+        }
+        if (!visitedLocations.contains(destination)) {
+            if (account.hasDialogueBox()) account.click(557, 266);
+            visitedLocations.add(destination);
+        }
+        account.click(569, 586);
+        return true;
+    }
+
+    public void goByDP(String destination, int[] mapInfo) throws InterruptedException {
         if (terminateFlag) return;
+        getOut();
+        long start = -50000;
+        int limit;
         do {
-            if (!isAtLocation(148, 190)) {
-                goByDP(destination, mapInfo);
-                return;
+            if (!isAtLocation(149, 206)) {
+                if (System.currentTimeMillis() - start > 50000) {
+                    useMap(436, 251);
+                    start = System.currentTimeMillis();
+                }
+                limit = 1;
+            } else {
+                account.clickOnNpc(241, 193);
+                limit = 5;
             }
-            account.clickOnNpc(275, 325);
-        } while (!terminateFlag && !waitForDialogueBox(5));
+        } while (!terminateFlag && !waitForDialogueBox(limit));
         account.click(254, 344);
         waitForDialogueBox(5);
         account.click(254, 362 + 18 * mapInfo[1]);
         waitForDialogueBox(5);
         account.click(254, 285 + 18 * mapInfo[2]);
+        while (!terminateFlag && !lr.read().equals(destination)) {
+            Thread.sleep(500);
+        }
+        if (!visitedLocations.contains(destination)) {
+            if (account.hasDialogueBox()) account.click(557, 266);
+            visitedLocations.add(destination);
+        }
     }
-
+    private void getOut() throws InterruptedException {
+        account.click(752, 512);
+        while (!terminateFlag && !lr.read().equals("kt")) {
+            Thread.sleep(500);
+        }
+        if (!visitedLocations.contains("kt")) {
+            if (account.hasDialogueBox()) account.click(557, 266);
+            visitedLocations.add("kt");
+        }
+    }
 
     private boolean progressMatch() throws InterruptedException {
         if (terminateFlag) return true;

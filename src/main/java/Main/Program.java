@@ -9,9 +9,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import java.nio.Buffer;
+import java.util.*;
 
 public abstract class Program {
     public boolean terminateFlag;
@@ -20,6 +19,55 @@ public abstract class Program {
     public CoordinatesReader cr;
     public boolean[] visited;
     public JButton startButton;
+    public Queue<int[]>[] itemQueues;
+    public static Map<Integer, BufferedImage> itemMap = null;
+
+    public void detectItems(boolean openInventory) throws IOException, InterruptedException {
+        if (itemMap == null) {
+            BufferedImage incense1 = ImageIO.read(new File("app/data/incense1.png"));
+            BufferedImage incense2 = ImageIO.read(new File("app/data/incense2.png"));
+            BufferedImage ticket = ImageIO.read(new File("app/data/ticket.png"));
+            itemMap = new HashMap<>();
+            itemMap.put(-991200, incense1);
+            itemMap.put(-4153312, incense2);
+            itemMap.put(-3108720, ticket);
+        }
+        if (openInventory) account.click(569, 586);
+        BufferedImage fullScreen = lr.captureWindow(3, 26, 800, 600);
+        boolean[][] visited = new boolean[800][600];
+        for (int i = 0; i < fullScreen.getWidth(); i++) {
+            for (int j = 0; j < fullScreen.getHeight(); j++) {
+                int rgb = fullScreen.getRGB(i, j);
+                if (!visited[i][j] && itemMap.containsKey(rgb) &&
+                        imageMatch(i, j, fullScreen, itemMap.get(rgb), 300)) {
+                    int index = (rgb == -3108720 ? 1 : 0);
+                    itemQueues[index].offer(new int[] {i + 3, j + 26});
+                    for (int k = i; k < i + 18; k++) {
+                        for (int l = j; l < j + 18; l++) {
+                            visited[k][l] = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (openInventory) account.click(569, 586);
+    }
+
+    public boolean hasItems(int i) throws IOException, InterruptedException {
+        int a = (i == 0 ? 2154736 : 9474256), b = (i == 0 ? 2138304 : 9474256);
+        for (int j = 0; j < 2; j++) {
+            while (!itemQueues[i].isEmpty()) {
+                int x = itemQueues[i].peek()[0], y = itemQueues[i].peek()[1];
+                int hash = account.getPixelHash(x, y);
+                if (hash == a || hash == b) {
+                    return true;
+                }
+                itemQueues[i].poll();
+            }
+            detectItems(false);
+        }
+        return false;
+    }
 
     public void waitUntilStationary() throws InterruptedException {
         int[] coordinates = new int[2];
@@ -49,14 +97,14 @@ public abstract class Program {
         waitUntilStationary();
     }
 
-    public void useIncense() throws InterruptedException {
+    public void useIncense() throws InterruptedException, IOException {
         if (terminateFlag) return;
         account.click(569, 586);
         if (!visited[1]) {
             if (account.hasDialogueBox()) account.click(557, 266);
             visited[1] = true;
         }
-        account.rightClick(450, 367);
+        if (hasItems(0)) account.rightClick(itemQueues[0].peek());
         account.click(569, 586);
     }
 
