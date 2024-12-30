@@ -15,7 +15,7 @@ public class VanTieu extends Program {
     private static final Map<String, int[]> mapInfos = new HashMap<>();
     private static final int[] npcColors = new int[] {7619655, 9426943, 12550759};
 
-    public VanTieu(int[] skills, int[] pets, WinDef.HWND[] handles, double scale, JButton startButton) {
+    public VanTieu(int[] skills, int[] pets, WinDef.HWND[] handles, double scale, JButton startButton, int flagHash) {
         this.lr = new LocationReader(handles[0], 0);
         this.cr = new CoordinatesReader(handles[0]);
         this.dr = new LocationReader(handles[0], 1);
@@ -29,7 +29,11 @@ public class VanTieu extends Program {
         }
         this.account = accounts[0];
         this.terminateFlag = false;
-        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
+        this.flagHash = flagHash;
+        this.itemQueues = new Queue[3];
+        for (int i = 0; i < 3; i++) {
+            this.itemQueues[i] = new LinkedList<>();
+        }
         if (mapInfos.isEmpty()) fillMapInfos();
 
         this.startButton = startButton;
@@ -50,10 +54,18 @@ public class VanTieu extends Program {
                 String destination = receiveQuest();
                 account.click(557, 266);
                 if (destination.isBlank() || !goToDestination(destination, mapInfos.get(destination))) break;
-                do {
+                boolean firstRun = true;
+                while (true) {
+                    if (!firstRun) {
+                        account.clickRandomLocation(240, 380, 230, 170);
+                        waitUntilStationary();
+                    }
                     account.click(642, 268);
-                } while (!terminateFlag && !waitForDialogueBox(50));
-                progressMatch();
+                    if (waitForDialogueBox(40) && progressMatch()) {
+                        break;
+                    }
+                    firstRun = false;
+                }
             }
         } catch (Exception _) {
 
@@ -65,25 +77,26 @@ public class VanTieu extends Program {
     }
 
     private boolean goToTTTC() throws InterruptedException, IOException {
-        if (terminateFlag) return true;
-        while (!terminateFlag && !isAtLocation(24, 77, "tttc")) {
-            if (!lr.read().equals("kt")) {
-                if (!goByTicket("lm", mapInfos.get("lm"))){
-                    return false;
-                }
-                useTransport(1);
+        if (terminateFlag) return false;
+        while (!terminateFlag && !isAtLocation(18, 72, "tttc")) {
+            account.click(569, 586);
+            if (!visited[1]) {
+                if (account.hasDialogueBox()) account.click(557, 266);
+                visited[1] = true;
             }
-            long start = -30000;
-            while (!terminateFlag && !lr.read().equals("tttc")) {
-                if (System.currentTimeMillis() - start > 30000) {
-                    useMap(102, 421);
-                    start = System.currentTimeMillis();
-                }
+            if (!hasItems(2)) {
+                account.click(569, 586);
+                if (!hasItems(2)) return false;
             }
-            account.click(171, 240);
-            while (!terminateFlag && !isAtLocation(24, 77)) {
+            account.rightClick(itemQueues[2].peek());
+            if (waitForDialogueBox(5)) {
+                account.click(348, 287);
+                if (waitForDialogueBox(5)) account.click(259, 286);
+            }
+            while (!terminateFlag && !isAtLocation(18, 72, "tttc")) {
                 Thread.sleep(500);
             }
+            account.click(569, 586);
         }
         return true;
     }
@@ -91,10 +104,10 @@ public class VanTieu extends Program {
     private String receiveQuest() throws InterruptedException, IOException {
         if (terminateFlag) return "";
         do {
-            if (!isAtLocation(24, 77, "tttc")) {
+            if (!isAtLocation(18, 72, "tttc")) {
                 if (!goToTTTC()) return "";
             }
-            account.clickOnNpc(97, 126);
+            account.clickOnNpc(306, 145);
         } while (!terminateFlag && !waitForDialogueBox(5));
         account.click(261, 325);
         waitForDialogueBox(5);
@@ -104,11 +117,11 @@ public class VanTieu extends Program {
     }
 
     private boolean goToDestination(String destination, int[] mapInfo) throws InterruptedException, IOException {
-        if (terminateFlag) return true;
+        if (terminateFlag) return false;
         if (mapInfo[0] == 0) {
             if (destination.equals("tvd")) {
                 if (goByTicket("lm", mapInfos.get("lm"))) {
-                    useTransport(0);
+                    goToTVD();
                     return true;
                 } else {
                     return false;
@@ -122,13 +135,13 @@ public class VanTieu extends Program {
         }
     }
 
-    private void useTransport(int i) throws InterruptedException {
+    private void goToTVD() throws InterruptedException {
         if (terminateFlag) return;
-        long start = -10000;
+        long start = -20000;
         int limit;
         do {
             if (!isAtLocation(9, 96)) {
-                if (System.currentTimeMillis() - start > 10000) {
+                if (System.currentTimeMillis() - start > 20000) {
                     useMap(275, 299);
                     start = System.currentTimeMillis();
                 }
@@ -138,9 +151,8 @@ public class VanTieu extends Program {
                 limit = 5;
             }
         } while (!terminateFlag && !waitForDialogueBox(limit));
-        account.click(252, 286 + 18 * i);
-        String destination = i == 0 ? "tvd" : "kt";
-        while (!terminateFlag && !lr.read().equals(destination)) {
+        account.click(252, 286);
+        while (!terminateFlag && !lr.read().equals("tvd")) {
             Thread.sleep(500);
         }
     }
@@ -151,13 +163,13 @@ public class VanTieu extends Program {
             if (account.hasDialogueBox()) account.click(557, 266);
             visited[1] = true;
         }
-        if (hasItems(1)) {
-            account.rightClick(itemQueues[1].peek());
-        } else {
-            return false;
+        if (!hasItems(1)) {
+            account.click(569, 586);
+            if (!hasItems(1)) return false;
         }
+        account.rightClick(itemQueues[1].peek());
         waitForDialogueBox(5);
-        account.click(254, 304 + 18 * mapInfo[1]);
+        account.click(254, 286 + 18 * mapInfo[1]);
         while (!terminateFlag && !lr.read().equals(destination)) {
             Thread.sleep(500);
         }
@@ -169,28 +181,29 @@ public class VanTieu extends Program {
         return true;
     }
 
-    public void goByDP(String destination, int[] mapInfo) throws InterruptedException {
-        if (terminateFlag) return;
-        getOut();
-        long start = -50000;
+    public boolean goByDP(String destination, int[] mapInfo) throws InterruptedException, IOException {
+        if (terminateFlag || !goByTicket("kt", mapInfos.get("kt"))) {
+            return false;
+        }
+        long start = -20000;
         int limit;
         do {
-            if (!isAtLocation(149, 206)) {
-                if (System.currentTimeMillis() - start > 50000) {
-                    useMap(436, 251);
+            if (!isAtLocation(145, 177)) {
+                if (System.currentTimeMillis() - start > 20000) {
+                    useMap(428, 234);
                     start = System.currentTimeMillis();
                 }
                 limit = 1;
             } else {
-                account.clickOnNpc(241, 193);
+                account.clickOnNpc(355, 392);
                 limit = 5;
             }
         } while (!terminateFlag && !waitForDialogueBox(limit));
         account.click(254, 344);
-        waitForDialogueBox(5);
-        account.click(254, 362 + 18 * mapInfo[1]);
-        waitForDialogueBox(5);
-        account.click(254, 285 + 18 * mapInfo[2]);
+        if (waitForDialogueBox(5)) {
+            account.click(254, 362 + 18 * mapInfo[1]);
+            if (waitForDialogueBox(5)) account.click(254, 285 + 18 * mapInfo[2]);
+        }
         while (!terminateFlag && !lr.read().equals(destination)) {
             Thread.sleep(500);
         }
@@ -198,16 +211,7 @@ public class VanTieu extends Program {
             if (account.hasDialogueBox()) account.click(557, 266);
             visitedLocations.add(destination);
         }
-    }
-    private void getOut() throws InterruptedException {
-        account.click(752, 512);
-        while (!terminateFlag && !lr.read().equals("kt")) {
-            Thread.sleep(500);
-        }
-        if (!visitedLocations.contains("kt")) {
-            if (account.hasDialogueBox()) account.click(557, 266);
-            visitedLocations.add("kt");
-        }
+        return true;
     }
 
     private boolean progressMatch() throws InterruptedException {
@@ -281,14 +285,14 @@ public class VanTieu extends Program {
                 "gn", "lssl", "lstk", "lscd", "dps",
                 "bbd", "bbdt1", "bbdtd", "bbdt2", "bbdt3",
                 "pvl", "vmn", "ktp", "ktdg", "tt",
-                "tvd", "vdd", "lm", "hht", "htt"
+                "tvd", "kt", "vdd", "lm", "hht", "htt"
         };
         int[][] infos = new int[][] {
                 {1, 0, 0}, {1, 0, 1}, {1, 0, 2}, {1, 0, 3}, {1, 0, 4}, {1, 0, 5},
                 {1, 1, 0}, {1, 1, 1}, {1, 1, 2}, {1, 1, 3}, {1, 1, 4},
                 {1, 2, 0}, {1, 2, 1}, {1, 2, 2}, {1, 2, 3}, {1, 2, 4},
                 {1, 3, 0}, {1, 3, 1}, {1, 3, 2}, {1, 3, 3}, {1, 3, 4},
-                {0, 1}, {0, 0}, {0, 1}, {0, 2}, {0, 3}
+                {0, 0}, {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}
         };
         for (int i = 0; i < locations.length; i++) {
             mapInfos.put(locations[i], infos[i]);

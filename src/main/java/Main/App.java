@@ -12,20 +12,21 @@ import java.util.*;
 
 
 public class App {
-    public static double scale = -1;
-    public static final GridBagConstraints gbc = new GridBagConstraints();
-    public static Map<String, Integer> keyMap;
-    public static Set<Integer> functionKeys;
-    public static final Dimension skillDimensions = new Dimension(75, 28);
-    public static final Font skillFont = new Font("Verdana", Font.BOLD, 14);
-    public static final Color skillColor = new Color(0, 120, 0);
-    public static final Color runningColor = new Color(144, 238, 144);
-    public static final Dimension uidDimensions = new Dimension(60, 28);
-    public static final Insets buttonPadding = new Insets(2, 2, 2, 2);
-    public static JTextField[] uidFields;
-    public static JButton[] skillButtons, petButtons;
-    public static Map<Integer, HWND> handleMap;
-    public static final Object lock = new Object();
+    private static double scale = -1;
+    private static final GridBagConstraints gbc = new GridBagConstraints();
+    private static Map<String, Integer> keyMap;
+    private static Set<Integer> functionKeys;
+    private static final Dimension skillDimensions = new Dimension(75, 28);
+    private static final Font skillFont = new Font("Verdana", Font.BOLD, 14);
+    private static final Color skillColor = new Color(0, 120, 0);
+    private static final Color runningColor = new Color(144, 238, 144);
+    private static final Dimension uidDimensions = new Dimension(60, 28);
+    private static final Insets buttonPadding = new Insets(2, 2, 2, 2);
+    private static final int[] colorHashes = new int[] {-9416688, -5206016, -10473392, -11513776, -11501504, -6254496, -11517920, -10469264};
+    private static JTextField[] uidFields;
+    private static JButton[] skillButtons, petButtons;
+    private static Map<Integer, HWND> handleMap;
+    private static final Object lock = new Object();
 
 
     public static void main(String[] args) {
@@ -67,9 +68,19 @@ public class App {
         }
 
         gbc.gridy = 6;
+        Color[] colors = {Color.RED, Color.decode("#f0d000"), Color.BLUE, Color.decode("#adcae6"), Color.GREEN, Color.WHITE, Color.BLACK, Color.PINK};
+
+        gbc.gridx = 0;
+        JComboBox colorPicker1 = getColorPicker(colors);
+        colorPicker1.setVisible(false);
+        panel.add(colorPicker1, gbc);
 
         gbc.gridx = 1;
         JComboBox dropdown1 = new JComboBox(new String[] {"Phản Đồ", "Tỉnh Sư", "VTTĐ"});
+        dropdown1.addActionListener(e -> {
+            colorPicker1.setVisible(dropdown1.getSelectedIndex() == 2);
+        });
+        dropdown1.setPreferredSize(skillDimensions);
         panel.add(dropdown1, gbc);
 
         gbc.gridx = 2;
@@ -77,12 +88,21 @@ public class App {
         startButton1.setPreferredSize(skillDimensions);
         startButton1.setMargin(buttonPadding);
         startButton1.addActionListener(e -> {
-            startProgram(dropdown1, startButton1, 0);
+            startProgram(dropdown1, startButton1, 0, colorPicker1);
         });
         panel.add(startButton1, gbc);
 
+        gbc.gridx = 3;
+        JComboBox colorPicker2 = getColorPicker(colors);
+        colorPicker2.setVisible(false);
+        panel.add(colorPicker2, gbc);
+
         gbc.gridx = 4;
         JComboBox dropdown2 = new JComboBox(new String[] {"Phản Đồ", "Tỉnh Sư", "VTTĐ"});
+        dropdown2.addActionListener(e -> {
+            colorPicker2.setVisible(dropdown2.getSelectedIndex() == 2);
+        });
+        dropdown2.setPreferredSize(skillDimensions);
         panel.add(dropdown2, gbc);
 
         gbc.gridx = 5;
@@ -90,7 +110,7 @@ public class App {
         startButton2.setPreferredSize(skillDimensions);
         startButton2.setMargin(buttonPadding);
         startButton2.addActionListener(e -> {
-            startProgram(dropdown2, startButton2, 5);
+            startProgram(dropdown2, startButton2, 5, colorPicker2);
         });
         panel.add(startButton2, gbc);
 
@@ -104,6 +124,26 @@ public class App {
 
         frame.pack();
         frame.setVisible(true);
+    }
+
+    private static JComboBox getColorPicker(Color[] colors) {
+        JComboBox<Color> colorBox = new JComboBox<>(colors);
+        colorBox.setPreferredSize(new Dimension(37, 18));
+
+        colorBox.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JPanel colorPanel = new JPanel();
+            colorPanel.setBackground(value);
+            return colorPanel;
+        });
+
+        colorBox.setFocusable(false);
+        colorBox.addActionListener(e -> {
+            Color selectedColor = (Color) colorBox.getSelectedItem();
+            if (selectedColor != null) colorBox.setBackground(selectedColor);
+        });
+        colorBox.setSelectedIndex(6);
+
+        return colorBox;
     }
 
     private static void addAccount(JPanel panel, int i, int offset) {
@@ -151,13 +191,13 @@ public class App {
         panel.add(petButtons[i], gbc);
     }
 
-    private static void startProgram(JComboBox dropdown, JButton startButton, int offset) {
+    private static void startProgram(JComboBox dropdown, JButton startButton, int offset, JComboBox colorPicker) {
         int i = dropdown.getSelectedIndex();
         if (i == 1) startTS(startButton, offset);
-        else startPD(startButton, offset, i == 0);
+        else startPD(startButton, offset, i == 0, colorPicker);
     }
 
-    private static void startPD(JButton startButton, int offset, boolean isPD) {
+    private static void startPD(JButton startButton, int offset, boolean isPD, JComboBox colorPicker) {
         if (startButton.getText().equals("Stop")) {
             return;
         }
@@ -190,7 +230,7 @@ public class App {
         if (isPD) {
             program = new PhanDo(skills, pets, handles, scale, startButton);
         } else {
-            program = new VanTieu(skills, pets, handles, scale, startButton);
+            program = new VanTieu(skills, pets, handles, scale, startButton, colorHashes[colorPicker.getSelectedIndex()]);
         }
         startButton.setBackground(runningColor);
         startButton.setText("Stop");

@@ -37,7 +37,11 @@ public class PhanDo extends Program {
             this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale, false);
         }
         this.account = accounts[0];
-        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
+        this.flagHash = -1;
+        this.itemQueues = new Queue[3];
+        for (int i = 0; i < 3; i++) {
+            this.itemQueues[i] = new LinkedList<>();
+        }
         this.terminateFlag = false;
 
         this.startButton = startButton;

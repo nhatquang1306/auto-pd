@@ -50,7 +50,7 @@ public class Account {
                     if (!isInBattle() || hasDialogueBox() || isRelogged()) {
                         catchPet = false;
                         return;
-                    } else if (catchPet && getPixelHash(746, 229) == petMoveBar) {
+                    } else if (getPixelHash(746, 229) == petMoveBar) {
                         break;
                     }
                     Thread.sleep(200);
@@ -88,15 +88,17 @@ public class Account {
     }
 
     private void characterAttack() throws InterruptedException {
-        if (skill == 11) {
-            click(760, 292);
-            return;
+        if (getPixelHash(746, 229) != petMoveBar) {
+            if (skill == 11) {
+                click(760, 292);
+                return;
+            }
+            if (skill != 0) {
+                click(375 + skill * 35, 548);
+            }
+            Thread.sleep(200);
+            clickOnNpc(enemyA, enemyB);
         }
-        if (skill != 0) {
-            click(375 + skill * 35, 548);
-        }
-        Thread.sleep(200);
-        clickOnNpc(enemyA, enemyB);
     }
 
     private void petAttack() throws InterruptedException {
@@ -210,6 +212,17 @@ public class Account {
 
     public void mouseMove(int[] arr) throws InterruptedException {
         mouseMove(arr[0], arr[1]);
+    }
+
+    public void clickRandomLocation(int xStart, int xLength, int yStart, int yLength) throws InterruptedException {
+        int x, y, hash;
+        do {
+            x = xStart + (int)(Math.random() * (xLength + 1));
+            y = yStart + (int)(Math.random() * (yLength + 1));
+            hash = getPixelHash(x, y);
+            mouseMove(x, y);
+        } while (!terminateFlag && getPixelHash(x, y) != hash);
+        click(x, y);
     }
 
     public int[] getMouseLocation() throws InterruptedException {

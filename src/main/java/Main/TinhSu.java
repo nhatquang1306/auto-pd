@@ -30,8 +30,12 @@ public class TinhSu extends Program {
         this.visited = new boolean[2];
 
         this.account = new Account(0, 0, handle, scale, false);
+        this.flagHash = -1;
         this.terminateFlag = false;
-        this.itemQueues = new Queue[] {new LinkedList<>(), new LinkedList<>()};
+        this.itemQueues = new Queue[3];
+        for (int i = 0; i < 3; i++) {
+            this.itemQueues[i] = new LinkedList<>();
+        }
         this.startButton = startButton;
     }
 

@@ -20,30 +20,35 @@ public abstract class Program {
     public boolean[] visited;
     public JButton startButton;
     public Queue<int[]>[] itemQueues;
-    public static Map<Integer, BufferedImage> itemMap = null;
+    public int flagHash;
+    public Map<Integer, TemplateInfo> itemMap = new HashMap<>();
+    private final int[] pixelHashes = new int[] {2138320, 9474256, 0};
 
     public void detectItems(boolean openInventory) throws IOException, InterruptedException {
-        if (itemMap == null) {
-            BufferedImage incense1 = ImageIO.read(new File("app/data/incense1.png"));
-            BufferedImage incense2 = ImageIO.read(new File("app/data/incense2.png"));
-            BufferedImage ticket = ImageIO.read(new File("app/data/ticket.png"));
-            itemMap = new HashMap<>();
-            itemMap.put(-991200, incense1);
-            itemMap.put(-4153312, incense2);
-            itemMap.put(-3108720, ticket);
+        if (itemMap.isEmpty()) {
+            itemMap.put(-3104736, new TemplateInfo(0));
+            itemMap.put(-3108720, new TemplateInfo(1));
+            if (flagHash != -1) {
+                itemMap.put(flagHash, new TemplateInfo(2, flagHash));
+                Color color = new Color(flagHash, true);
+                pixelHashes[2] = (color.getBlue() << 16) | (color.getGreen() << 8) | (color.getRed());
+            }
         }
         if (openInventory) account.click(569, 586);
+        for (Queue<int[]> queue : itemQueues) {
+            queue.clear();
+        }
         BufferedImage fullScreen = lr.captureWindow(3, 26, 800, 600);
         boolean[][] visited = new boolean[800][600];
         for (int i = 0; i < fullScreen.getWidth(); i++) {
             for (int j = 0; j < fullScreen.getHeight(); j++) {
                 int rgb = fullScreen.getRGB(i, j);
-                if (!visited[i][j] && itemMap.containsKey(rgb) &&
-                        imageMatch(i, j, fullScreen, itemMap.get(rgb), 300)) {
-                    int index = (rgb == -3108720 ? 1 : 0);
-                    itemQueues[index].offer(new int[] {i + 3, j + 26});
-                    for (int k = i; k < i + 18; k++) {
-                        for (int l = j; l < j + 18; l++) {
+                TemplateInfo t = itemMap.get(rgb);
+                if (!visited[i][j] && t != null &&
+                        imageMatch(i, j, fullScreen, t.template, t.match)) {
+                    itemQueues[t.index].offer(new int[] {i + 3, j + 26});
+                    for (int k = i; k < i + t.template.getWidth(); k++) {
+                        for (int l = j; l < j + t.template.getHeight(); l++) {
                             visited[k][l] = true;
                         }
                     }
@@ -54,12 +59,10 @@ public abstract class Program {
     }
 
     public boolean hasItems(int i) throws IOException, InterruptedException {
-        int a = (i == 0 ? 2154736 : 9474256), b = (i == 0 ? 2138304 : 9474256);
-        for (int j = 0; j < 2; j++) {
+        for (int j = 0; j < 3; j++) {
             while (!itemQueues[i].isEmpty()) {
                 int x = itemQueues[i].peek()[0], y = itemQueues[i].peek()[1];
-                int hash = account.getPixelHash(x, y);
-                if (hash == a || hash == b) {
+                if (account.getPixelHash(x, y) == pixelHashes[i]) {
                     return true;
                 }
                 itemQueues[i].poll();
@@ -172,6 +175,27 @@ public abstract class Program {
             Thread.sleep(200);
         }
         return false;
+    }
+
+    public static class TemplateInfo {
+        BufferedImage template;
+        int match;
+        int index;
+        public TemplateInfo(int i) throws IOException {
+            if (i == 0) {
+                template = ImageIO.read(new File("app/data/incense.png"));
+                match = 34;
+            } else if (i == 1) {
+                template = ImageIO.read(new File("app/data/ticket.png"));
+                match = 300;
+            }
+            this.index = i;
+        }
+        public TemplateInfo(int i, int hash) throws IOException {
+            index = i;
+            template = ImageIO.read(new File("app/data/" + hash + ".png"));
+            match = 100;
+        }
     }
 
     public void setTerminateFlag() {
