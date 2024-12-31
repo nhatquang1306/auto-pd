@@ -37,8 +37,8 @@ public class Account {
             enemyA = 355;
             enemyB = 192;
         } else {
-            enemyA = 231;
-            enemyB = 201;
+            enemyA = 230;
+            enemyB = 173;
         }
     }
 
@@ -83,7 +83,7 @@ public class Account {
     private void ropeIn() throws InterruptedException {
         if (getPixelHash(746, 229) != petMoveBar) {
             click(759, 359);
-            clickOnNpc(231, 201);
+            clickOnNpc(230, 173);
         }
     }
 
