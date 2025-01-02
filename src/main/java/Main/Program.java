@@ -14,6 +14,7 @@ import java.util.*;
 
 public abstract class Program {
     public boolean terminateFlag;
+    public Account[] accounts;
     public Account account;
     public LocationReader lr;
     public CoordinatesReader cr;
@@ -22,7 +23,61 @@ public abstract class Program {
     public Queue<int[]>[] itemQueues;
     public int flagHash;
     public Map<Integer, TemplateInfo> itemMap = new HashMap<>();
+    public int[] battleOrder;
+    public static final int moveBar = 2246481;
     private final int[] pixelHashes = new int[] {2138320, 9474256, 0};
+    private static final int[][] battlePositions = new int[][] {
+            {7, 188}, {71, 156}, {135, 124}, {199, 92}, {263, 60},
+            {71, 220}, {135, 188}, {199, 156}, {263, 124}, {331, 92},
+            {135, 252}, {199, 220}, {263, 188}
+    };
+
+    private int[] findBattleEnemy() {
+        BufferedImage enemies = cr.captureWindow(53, 106, 500, 275);
+        for (int i : battleOrder) {
+            int x = battlePositions[i][0], y = battlePositions[i][1];
+            for (int j = x; j < x + 70; j++) {
+                for (int k = y; k < y + 11; k++) {
+                    if (enemies.getRGB(j, k) == -11477912) {
+                        return new int[] {x + 85, y + 55};
+                    }
+                }
+            }
+        }
+        return new int[] {223, 179};
+    }
+
+    public void battle(boolean catchPet) throws InterruptedException {
+        for (int i = 0; catchPet && i < 5; i++) {
+            if (accounts[i] == null) continue;
+            accounts[i].click(557, 266);
+        }
+        while (!terminateFlag && account.isInBattle()) {
+            while (!terminateFlag && account.getPixelHash(782, 380) != moveBar) {
+                if (!account.isInBattle() || account.hasDialogueBox() || account.isRelogged()) {
+                    return;
+                } else if (account.getPixelHash(746, 229) == Account.petMoveBar) {
+                    break;
+                }
+                Thread.sleep(200);
+            }
+            Thread[] threads = new Thread[5];
+            int[] target = catchPet ? null : findBattleEnemy();
+            for (int i = 0; i < 5; i++) {
+                if (accounts[i] == null) continue;
+                if (catchPet) {
+                    threads[i] = new Thread(accounts[i]::catchPet);
+                } else {
+                    accounts[i].setEnemy(target);
+                    threads[i] = new Thread(accounts[i]::execute);
+                }
+                threads[i].start();
+            }
+            for (Thread thread : threads) {
+                if (thread != null) thread.join();
+            }
+        }
+    }
 
     public void detectItems(boolean openInventory) throws IOException, InterruptedException {
         if (itemMap.isEmpty()) {
@@ -150,7 +205,7 @@ public abstract class Program {
         return new int[2];
     }
 
-    private boolean imageMatch(int x, int y, BufferedImage screen, BufferedImage template, int match) {
+    public boolean imageMatch(int x, int y, BufferedImage screen, BufferedImage template, int match) {
         for (int col = 0; col < template.getWidth(); col++) {
             for (int row = 0; row < template.getHeight(); row++) {
                 int color = template.getRGB(col, row);

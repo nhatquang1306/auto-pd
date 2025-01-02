@@ -15,13 +15,11 @@ public class Account {
     private final double scale;
     private final HWND handle;
     private boolean terminateFlag;
-    private boolean catchPet;
-    private int enemyA, enemyB;
     private final Object lock = new Object();
     public static final int inMapColor = 142938;
-    public static final int moveBar = 2246481;
     public static final int petMoveBar = 993585;
-    public static final int white = 16711422;
+    private int[] enemy;
+//    public static final int white = 16711422;
     private static final int[] dialogueBoxColors = new int[] {0, 0, 4372};
     private static final int[] relogColors = new int[] {3297369, 5530716, 7381428, 5383957};
 
@@ -32,46 +30,32 @@ public class Account {
         this.scale = scale;
         this.handle = handle;
         this.terminateFlag = handle == null;
-        this.catchPet = false;
-        if (isVTTD) {
-            enemyA = 355;
-            enemyB = 192;
-        } else {
-            enemyA = 230;
-            enemyB = 173;
-        }
     }
 
-    public void run() {
+    public void setEnemy(int[] enemy) {
+        this.enemy = enemy;
+    }
+
+    public void catchPet() {
         try {
-            if (catchPet) click(557, 266);
-            while (!terminateFlag && isInBattle()) {
-                while (!terminateFlag && getPixelHash(782, 380) != moveBar) {
-                    if (!isInBattle() || hasDialogueBox() || isRelogged()) {
-                        catchPet = false;
-                        return;
-                    } else if (getPixelHash(746, 229) == petMoveBar) {
-                        break;
-                    }
-                    Thread.sleep(200);
-                }
-
-                if (catchPet) {
-                    ropeIn();
-                    if (pet < 12 && waitForPetPrompt()) click(760, 246);
-                } else {
-                    characterAttack();
-                    if (pet < 12 && waitForPetPrompt()) petAttack();
-                }
-
-                while (!terminateFlag && (getPixelHash(378, 90) == white || getPixelHash(405, 325) == white)) {
-                    Thread.sleep(200);
-                }
+            if (getPixelHash(746, 229) != petMoveBar) {
+                click(759, 359);
+                clickOnNpc(223, 179);
             }
-            catchPet = false;
+            if (pet < 12 && waitForPetPrompt()) click(760, 246);
         } catch (Exception _) {
 
         }
+    }
+
+    public void execute() {
+        try {
+            characterAttack(enemy[0], enemy[1]);
+            if (pet < 12 && waitForPetPrompt()) petAttack(enemy[0], enemy[1]);
+        } catch (Exception _) {
+
+        }
+
     }
 
     public boolean isRelogged() {
@@ -80,14 +64,7 @@ public class Account {
         return Arrays.equals(hashes, relogColors);
     }
 
-    private void ropeIn() throws InterruptedException {
-        if (getPixelHash(746, 229) != petMoveBar) {
-            click(759, 359);
-            clickOnNpc(230, 173);
-        }
-    }
-
-    private void characterAttack() throws InterruptedException {
+    private void characterAttack(int a, int b) throws InterruptedException {
         if (getPixelHash(746, 229) != petMoveBar) {
             if (skill == 11) {
                 click(760, 292);
@@ -97,11 +74,11 @@ public class Account {
                 click(375 + skill * 35, 548);
             }
             Thread.sleep(200);
-            clickOnNpc(enemyA, enemyB);
+            clickOnNpc(a, b);
         }
     }
 
-    private void petAttack() throws InterruptedException {
+    private void petAttack(int a, int b) throws InterruptedException {
         if (pet == 11) {
             click(760, 246);
             return;
@@ -111,12 +88,12 @@ public class Account {
             click(254 + pet * 37, 290);
         }
         Thread.sleep(200);
-        clickOnNpc(enemyA, enemyB);
+        clickOnNpc(a, b);
     }
 
     private boolean waitForPetPrompt() throws InterruptedException {
         long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < 7000 && !terminateFlag) {
+        while (System.currentTimeMillis() - start < 3000 && !terminateFlag) {
             if (getPixelHash(746, 229) == petMoveBar) {
                 return true;
             }
@@ -132,10 +109,6 @@ public class Account {
 
     public boolean isInBattle() {
         return getPixelHash(778, 38) != inMapColor;
-    }
-
-    public void setCatchPet() {
-        this.catchPet = true;
     }
 
     public void setTerminateFlag() {

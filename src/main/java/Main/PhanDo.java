@@ -15,7 +15,6 @@ import java.util.*;
 
 
 public class PhanDo extends Program {
-    Account[] accounts;
     BufferedImage[] enemies;
     int[][] enemiesInfo;
     private static final int[] traitorColors = new int[] {8369145, 2898513, 8556968};
@@ -42,6 +41,7 @@ public class PhanDo extends Program {
         for (int i = 0; i < 3; i++) {
             this.itemQueues[i] = new LinkedList<>();
         }
+        this.battleOrder = new int[] {2, 0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12};
         this.terminateFlag = false;
 
         this.startButton = startButton;
@@ -85,7 +85,7 @@ public class PhanDo extends Program {
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
-                    if (arr[0] < 0 || arr[1] < 0 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
+                    if (arr[0] < 0 || arr[1] <= 10 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
                         continue;
                     }
                     account.clickOnNpc(arr);
@@ -128,50 +128,25 @@ public class PhanDo extends Program {
     }
 
     private void progressMatch() throws InterruptedException {
+        if (terminateFlag) return;
         account.click(255, 304);
+        for (int i = 0; i < 5; i++) {
+            if (accounts[i] != null && accounts[i].isRelogged()) {
+                accounts[i].click(411, 392);
+                accounts[i] = null;
+            }
+        }
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 5; i++) {
-            if (accounts[i] == null || accounts[i].isRelogged()) {
-                if (accounts[i] != null) {
-                    accounts[i].click(411, 392);
-                    accounts[i] = null;
-                }
-                continue;
+        while (!terminateFlag && !account.isInBattle()) {
+            if (System.currentTimeMillis() - start >= 5000) {
+                return;
             }
-            while (!terminateFlag && !accounts[i].isInBattle()) {
-                if (System.currentTimeMillis() - start >= 7500) {
-                    return;
-                }
-                Thread.sleep(200);
-            }
+            Thread.sleep(200);
         }
-        Thread[] threads = new Thread[5];
-        for (int i = 0; i < 5; i++) {
-            if (accounts[i] == null) continue;
-            threads[i] = new Thread(accounts[i]::run);
-            threads[i].start();
-        }
-        for (Thread thread : threads) {
-            if (thread != null) thread.join();
-        }
+        battle(false);
         if (account != null && account.hasDialogueBox()) {
-            for (int i = 0; i < 5; i++) {
-                if (accounts[i] == null || accounts[i].isRelogged()) {
-                    if (accounts[i] != null) {
-                        accounts[i].click(411, 392);
-                        accounts[i] = null;
-                    }
-                    continue;
-                }
-                accounts[i].setCatchPet();
-                threads[i] = new Thread(accounts[i]::run);
-                threads[i].start();
-            }
-            for (Thread thread : threads) {
-                if (thread != null) thread.join();
-            }
+            battle(true);
         }
-        Thread.sleep(500);
     }
 
     public void goBack(Location location) throws InterruptedException {

@@ -2,20 +2,19 @@ package Main;
 
 import TextReaders.CoordinatesReader;
 import TextReaders.LocationReader;
-import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinDef.HWND;
 
 import javax.swing.*;
 import java.io.IOException;
 import java.util.*;
 
 public class VanTieu extends Program {
-    Account[] accounts;
     LocationReader dr;
     Set<String> visitedLocations;
     private static final Map<String, int[]> mapInfos = new HashMap<>();
     private static final int[] npcColors = new int[] {7619655, 9426943, 12550759};
 
-    public VanTieu(int[] skills, int[] pets, WinDef.HWND[] handles, double scale, JButton startButton, int flagHash) {
+    public VanTieu(int[] skills, int[] pets, HWND[] handles, double scale, JButton startButton, int flagHash) {
         this.lr = new LocationReader(handles[0], 0);
         this.cr = new CoordinatesReader(handles[0]);
         this.dr = new LocationReader(handles[0], 1);
@@ -34,6 +33,7 @@ public class VanTieu extends Program {
         for (int i = 0; i < 3; i++) {
             this.itemQueues[i] = new LinkedList<>();
         }
+        this.battleOrder = new int[] {8, 2, 0, 1, 3, 4, 6, 7};
         if (mapInfos.isEmpty()) fillMapInfos();
 
         this.startButton = startButton;
@@ -217,47 +217,23 @@ public class VanTieu extends Program {
     private boolean progressMatch() throws InterruptedException {
         if (terminateFlag) return true;
         account.click(261, 307);
+        for (int i = 0; i < 5; i++) {
+            if (accounts[i] != null && accounts[i].isRelogged()) {
+                accounts[i].click(411, 392);
+                accounts[i] = null;
+            }
+        }
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 5; i++) {
-            if (accounts[i] == null || accounts[i].isRelogged()) {
-                if (accounts[i] != null) {
-                    accounts[i].click(411, 392);
-                    accounts[i] = null;
-                }
-                continue;
+        while (!terminateFlag && !account.isInBattle()) {
+            if (System.currentTimeMillis() - start >= 5000) {
+                return false;
             }
-            while (!terminateFlag && !accounts[i].isInBattle()) {
-                if (System.currentTimeMillis() - start >= 7500) {
-                    return false;
-                }
-                Thread.sleep(200);
-            }
+            Thread.sleep(200);
         }
-        Thread[] threads = new Thread[5];
-        for (int i = 0; i < 5; i++) {
-            if (accounts[i] == null) continue;
-            threads[i] = new Thread(accounts[i]::run);
-            threads[i].start();
-        }
-        for (Thread thread : threads) {
-            if (thread != null) thread.join();
-        }
+        battle(false);
         if (account != null && account.hasDialogueBox() && !endMatch()) {
-            for (int i = 0; i < 5; i++) {
-                if (accounts[i] == null || accounts[i].isRelogged()) {
-                    if (accounts[i] != null) {
-                        accounts[i].click(411, 392);
-                        accounts[i] = null;
-                    }
-                    continue;
-                }
-                accounts[i].setCatchPet();
-                threads[i] = new Thread(accounts[i]::run);
-                threads[i].start();
-            }
-            for (Thread thread : threads) {
-                if (thread != null) thread.join();
-            }
+            account.click(557, 266);
+            battle(true);
         }
         account.click(557, 266);
         while (!terminateFlag && account.isInBattle()) {
@@ -265,7 +241,6 @@ public class VanTieu extends Program {
         }
         return true;
     }
-
     private boolean endMatch() {
         int[] hashes = new int[] {account.getPixelHash(311, 89), account.getPixelHash(338, 164), account.getPixelHash(300, 226)};
         return Arrays.equals(hashes, npcColors);
@@ -278,7 +253,6 @@ public class VanTieu extends Program {
             if (account != null) account.setTerminateFlag();
         }
     }
-
     private void fillMapInfos() {
         String[] locations = new String[] {
                 "bvt" , "vul", "vdnd", "ktng", "bhc", "nnl",

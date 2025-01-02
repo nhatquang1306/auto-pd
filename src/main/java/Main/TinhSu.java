@@ -16,7 +16,6 @@ public class TinhSu extends Program {
     BufferedImage[] enemies;
     int[][] enemiesInfo;
     private static final int[] lionColors = new int[] {14978649, 116, 6640};
-    private static final int[] earthColors = new int[] {13363962, 11257839, 788741};
 
     public TinhSu(HWND handle, double scale, JButton startButton) {
         try {
@@ -36,6 +35,7 @@ public class TinhSu extends Program {
         for (int i = 0; i < 3; i++) {
             this.itemQueues[i] = new LinkedList<>();
         }
+        this.battleOrder = new int[] {2, 0, 1, 3, 4, 6, 7, 8};
         this.startButton = startButton;
     }
 
@@ -75,7 +75,7 @@ public class TinhSu extends Program {
                 while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
-                    if (arr[0] < 0 || arr[1] < 0 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
+                    if (arr[0] < 0 || arr[1] <= 10 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
                         continue;
                     }
                     account.clickOnNpc(arr);
@@ -142,9 +142,9 @@ public class TinhSu extends Program {
         }
     }
 
-    private boolean isCorrectEnemy() {
+    public boolean isCorrectEnemy() {
         int[] hashes = new int[] {account.getPixelHash(333, 126), account.getPixelHash(339, 205), account.getPixelHash(306, 175)};
-        return Arrays.equals(hashes, lionColors) || Arrays.equals(hashes, earthColors);
+        return Arrays.equals(hashes, lionColors);
     }
 
     private void progressMatch() throws InterruptedException {
