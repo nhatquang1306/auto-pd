@@ -72,7 +72,7 @@ public class TinhSu extends Program {
                 for (int i = 0; i < enemies.length && stack.isEmpty(); i++) {
                     findEnemies(stack, enemies[i], enemiesInfo[i]);
                 }
-                while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
+                while (!terminateFlag && !stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
                     if (arr[0] < 0 || arr[1] <= 10 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {

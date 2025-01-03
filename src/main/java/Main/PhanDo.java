@@ -82,7 +82,7 @@ public class PhanDo extends Program {
                 for (int i = 0; i < enemies.length && stack.isEmpty(); i++) {
                     findEnemies(stack, enemies[i], enemiesInfo[i]);
                 }
-                while (!stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
+                while (!terminateFlag && !stack.isEmpty() && isAtLocation(coordinates[0], coordinates[1])) {
                     if (account.isInBattle()) continue;
                     int[] arr = stack.pop();
                     if (arr[0] < 0 || arr[1] <= 10 || arr[0] >= 800 || arr[1] >= 600 || (arr[0] > 630 && arr[1] < 220)) {
@@ -138,7 +138,7 @@ public class PhanDo extends Program {
         }
         long start = System.currentTimeMillis();
         while (!terminateFlag && !account.isInBattle()) {
-            if (System.currentTimeMillis() - start >= 5000) {
+            if (System.currentTimeMillis() - start >= 8000) {
                 return;
             }
             Thread.sleep(200);
@@ -175,7 +175,7 @@ public class PhanDo extends Program {
             default -> new HashMap<>();
         };
         String cur = lr.read();
-        while (!map.containsKey(cur)) cur = lr.read();
+        while (!terminateFlag && !map.containsKey(cur)) cur = lr.read();
         int[] arr = map.get(cur);
         if (arr[0] < 0) {
             useMap(-arr[0], arr[1]);

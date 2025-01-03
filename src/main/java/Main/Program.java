@@ -194,7 +194,7 @@ public abstract class Program {
     }
 
     public int[] findExit() throws InterruptedException {
-        while (account.hasDialogueBox()) {
+        while (!terminateFlag && account.hasDialogueBox()) {
             BufferedImage screen = cr.captureWindow(227, 280, 1, 180);
             for (int row = screen.getHeight() - 1; row >= 0; row--) {
                 int rgb = screen.getRGB(0, row);

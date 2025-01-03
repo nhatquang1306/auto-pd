@@ -54,9 +54,9 @@ public class VanTieu extends Program {
                 String destination = receiveQuest();
                 account.click(557, 266);
                 if (destination.isBlank() || !goToDestination(destination, mapInfos.get(destination))) break;
-                boolean firstRun = true;
-                while (true) {
-                    if (!firstRun) {
+                int runCount = 0;
+                while (!terminateFlag && runCount <= 10) {
+                    if (runCount > 0) {
                         account.clickRandomLocation(240, 380, 230, 170);
                         waitUntilStationary();
                     }
@@ -64,8 +64,9 @@ public class VanTieu extends Program {
                     if (waitForDialogueBox(40) && progressMatch()) {
                         break;
                     }
-                    firstRun = false;
+                    runCount++;
                 }
+                if (runCount > 10) break;
             }
         } catch (Exception _) {
 
@@ -225,7 +226,7 @@ public class VanTieu extends Program {
         }
         long start = System.currentTimeMillis();
         while (!terminateFlag && !account.isInBattle()) {
-            if (System.currentTimeMillis() - start >= 5000) {
+            if (System.currentTimeMillis() - start >= 8000) {
                 return false;
             }
             Thread.sleep(200);
@@ -241,6 +242,7 @@ public class VanTieu extends Program {
         }
         return true;
     }
+
     private boolean endMatch() {
         int[] hashes = new int[] {account.getPixelHash(311, 89), account.getPixelHash(338, 164), account.getPixelHash(300, 226)};
         return Arrays.equals(hashes, npcColors);
