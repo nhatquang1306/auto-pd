@@ -28,7 +28,7 @@ public class TinhSu extends Program {
         this.cr = new CoordinatesReader(handle);
         this.visited = new boolean[2];
 
-        this.account = new Account(0, 0, handle, scale, false);
+        this.account = new Account(0, 0, handle, scale);
         this.flagHash = -1;
         this.terminateFlag = false;
         this.itemQueues = new Queue[3];

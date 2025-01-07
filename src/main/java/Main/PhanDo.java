@@ -33,7 +33,7 @@ public class PhanDo extends Program {
         this.accounts = new Account[5];
         for (int i = 0; i < 5; i++) {
             if (handles[i] == null) continue;
-            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale, false);
+            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale);
         }
         this.account = accounts[0];
         this.flagHash = -1;
@@ -138,7 +138,7 @@ public class PhanDo extends Program {
         }
         long start = System.currentTimeMillis();
         while (!terminateFlag && !account.isInBattle()) {
-            if (System.currentTimeMillis() - start >= 8000) {
+            if (System.currentTimeMillis() - start >= 5000) {
                 return;
             }
             Thread.sleep(200);

@@ -24,7 +24,7 @@ public class VanTieu extends Program {
         this.accounts = new Account[5];
         for (int i = 0; i < 5; i++) {
             if (handles[i] == null) continue;
-            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale, true);
+            this.accounts[i] = new Account(skills[i], pets[i], handles[i], scale);
         }
         this.account = accounts[0];
         this.terminateFlag = false;

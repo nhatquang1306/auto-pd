@@ -19,12 +19,11 @@ public class Account {
     public static final int inMapColor = 142938;
     public static final int petMoveBar = 993585;
     private int[] enemy;
-//    public static final int white = 16711422;
     private static final int[] dialogueBoxColors = new int[] {0, 0, 4372};
     private static final int[] relogColors = new int[] {3297369, 5530716, 7381428, 5383957};
 
 
-    public Account(int skill, int pet, HWND handle, double scale, boolean isVTTD) {
+    public Account(int skill, int pet, HWND handle, double scale) {
         this.skill = skill;
         this.pet = pet;
         this.scale = scale;

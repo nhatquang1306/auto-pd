@@ -198,9 +198,7 @@ public class App {
     }
 
     private static void startPD(JButton startButton, int offset, boolean isPD, JComboBox colorPicker) {
-        if (startButton.getText().equals("Stop")) {
-            return;
-        }
+        if (startButton.getText().equals("Stop")) return;
 
         int[] skills = new int[5];
         int[] pets = new int[5];
@@ -247,9 +245,8 @@ public class App {
     }
 
     private static void startTS(JButton startButton, int offset) {
-        if (startButton.getText().equals("Stop")) {
-            return;
-        }
+        if (startButton.getText().equals("Stop")) return;
+
         int UID;
         String a = uidFields[offset].getText();
         if (a.isBlank()) return;
